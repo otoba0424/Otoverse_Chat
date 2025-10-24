@@ -1,4 +1,4 @@
-<img width="1587" height="2245" alt="ポスター (1)" src="https://github.com/user-attachments/assets/de7e53cd-9c10-48a3-b3dc-726faf1fcabd" />
+<img width="529" height="748" alt="ポスター (1)" src="https://github.com/user-attachments/assets/de7e53cd-9c10-48a3-b3dc-726faf1fcabd" />
 
 # Manatu_AI制作に関する概要
 ## 1.「制作班」及び「制作の狙い」
