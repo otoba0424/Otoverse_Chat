@@ -1,5 +1,3 @@
-<img width="529" height="748" alt="ポスター (1)" src="https://github.com/user-attachments/assets/de7e53cd-9c10-48a3-b3dc-726faf1fcabd" />
-
 # Manatu_AI制作に関する概要
 ## 1.「制作班」及び「制作の狙い」
 ・このプロジェクトは「音葉家構築班」が構築します。将来的には多数の「おとば！世界」のキャラクターを選択できるようにします。
@@ -13,3 +11,6 @@
 ・音葉 万夏
 。（※）音葉 竜一
 （※）旭川 エレナ　（OT-03 おとば！の日特別モデル）
+
+# 【広報】最新のプロジェクト制作ポスターです
+<img width="529" height="748" alt="開発宣伝ポスター" src="https://github.com/user-attachments/assets/de7e53cd-9c10-48a3-b3dc-726faf1fcabd" />
