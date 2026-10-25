@@ -1,5 +1,7 @@
 <img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/86bb4691-8030-4250-aa8e-248d974757d2" />
 
+# Otoverse Chat
+
 AI のキャラクターと、チャットと声で会話するブラウザアプリです。
 
 現在の「Otoverse」が発案される前に作られた試作で、**採用されなかったアイデア（没案）** です。
@@ -70,6 +72,7 @@ PORT=3000
 ```
 
 - 各行に、コメントや説明を書き足さないでください（値として読み込まれてしまい、エラーになります）
+- `.env` は GitHub に上げません（`.gitignore` に入れてください）
 
 ### 2. サーバーを起動する
 
@@ -157,15 +160,14 @@ ChatVRM だけで試すなら `http://localhost:5173/` を開きます。
 
 ## ライセンス
 
-### ソースコード
-`proxy.js`、`index.html`、`Run.bat` など、このリポジトリの自作コードは
-[MIT License](LICENSE) です。
+このリポジトリは、中身によってライセンスが分かれています。
 
-### キャラクター・画像・設定
-音葉 万夏、旭川 エレナをはじめとするキャラクター、およびその画像・設定・
-世界観（`img/` 内の画像を含む）の著作権は、おとば！に帰属します。
-All rights reserved. 無断での転載・再配布・二次利用はご遠慮ください。
+| 対象 | ライセンス |
+| --- | --- |
+| ソースコード（`proxy.js`、`index.html` の処理、`Run.bat` など） | [MIT License](LICENSE) |
+| キャラクター・画像（`img/`）・設定・名称 | [All rights reserved](LICENSE-ASSETS.md)（無断での転載・改変・商用利用は不可） |
+| `otoverse-chat-vrm/` | pixiv Inc. の ChatVRM（MIT License）。[`LICENSE`](otoverse-chat-vrm/LICENSE) を参照 |
+| `AvatarSample_B.vrm` | pixiv の VRoid Project によるサンプルモデル。モデルの利用条件に従う |
 
-### 同梱しているもの
-`otoverse-chat-vrm/` は pixiv Inc. の ChatVRM（MIT License）をもとにしています。
-元のライセンスは `otoverse-chat-vrm/LICENSE` を参照してください。
+> GitHub のリポジトリ上部には「MIT」と表示されますが、キャラクターと画像は MIT の対象外です。
+> 詳しくは [`LICENSE-ASSETS.md`](LICENSE-ASSETS.md) を読んでください。
