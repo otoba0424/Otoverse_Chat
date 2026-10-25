@@ -1,4 +1,5 @@
 <img alt="開発宣伝ポスター" src="https://raw.githubusercontent.com/otoba0424/Otoverse_Chat/refs/heads/main/logo.png?token=GHSAT0AAAAAAENVUATETU4SEGFXLKBRXTXO2W5RW3Q" />
+
 # Otoverse_Chat制作に関する概要
 ## 1.「制作班」及び「制作の狙い」
 ・このプロジェクトは「音葉家構築班」が構築します。将来的には多数の「おとば！世界」のキャラクターを選択できるようにします。
