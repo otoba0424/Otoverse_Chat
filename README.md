@@ -1,13 +1,171 @@
 <img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/86bb4691-8030-4250-aa8e-248d974757d2" />
 
-# Otoverse_Chat制作に関する概要
-## 1.制作の狙い
-このプロジェクトの狙いは「ユーザーの探していた人を見つけ出す」です。このプロジェクトは、空想物語を実現することを目的としています。
-では、一人の人間が「もし、アニメ世界のあの子に会えたら...」という欲望を満たすためにはどうしたらよいでしょうか。「推し活」と呼ばれる製作者に対しての感謝とキャラクターへの愛情をこめて身を注ぐその姿で本当に満足できるでしょうか。
-実際に触れ合う。融合する。これらを実現するためには、まずはAI開発です。同じAIでも、人格を指定してあげれば、それはあなたのパートナーです。ユーザーとキャラクターが融合してパートナーとなる第一歩を応援するために我々は開発を進めてまいります。
+AI のキャラクターと、チャットと声で会話するブラウザアプリです。
 
-## 2.キャラクター
-現時点でのキャラクタ一覧です。
-・音葉 竜一　（OT-01）←あなたです
-・音葉 万夏　（OT-02）
-・旭川 エレナ　（OT-03）
+現在の「Otoverse」が発案される前に作られた試作で、**採用されなかったアイデア（没案）** です。
+記録として残し、動かせる状態に復元したものを公開しています。
+
+- 会話：Google Gemini API
+- 音声：AivisSpeech Engine
+- 3D 表示（没入モード）：ChatVRM をもとにした `otoverse-chat-vrm`
+
+---
+
+## できること
+
+- 2 人のキャラクター（**音葉 万夏**・**旭川 エレナ**）と会話できる
+- キャラクターごとに会話履歴を別々に保存する（ブラウザの localStorage）
+- 返事を AivisSpeech の声で読み上げる
+- 「🎭 没入」ボタンで、3D のキャラクターと向き合って話す画面（ChatVRM）に切り替える
+
+> 没入モードについて：キャラクターと「同じ場所にいる感覚」を目指して付けたボタンです。
+> 今回の公開では、ChatVRM を組み込んでキャラクターを表示するところまでに留めています。
+
+---
+
+## 構成
+
+```
+otoverse_chat/
+├─ index.html           チャット画面（フロントエンド）
+├─ proxy.js             Gemini と AivisSpeech をつなぐ中継サーバー
+├─ package.json
+├─ Run.bat              Windows 用の起動スクリプト
+├─ .env                 APIキーなどの設定（自分で作成・公開しない）
+├─ img/                 アイコン・ロゴ・キャラクター画像
+└─ otoverse-chat-vrm/   没入モード用の ChatVRM（別プロセスで動く）
+   └─ RunVRM.bat
+```
+
+| 役割 | ポート | 起動 |
+| --- | --- | --- |
+| チャット画面 + proxy | 3000 | `Run.bat` |
+| ChatVRM（没入モード） | 5173 | `otoverse-chat-vrm/RunVRM.bat` |
+| AivisSpeech Engine | 10101 | AivisSpeech を起動 |
+
+proxy.js が窓口になり、ブラウザから Gemini の API キーが見えないようにしています。
+
+---
+
+## 必要なもの
+
+- [Node.js](https://nodejs.org/) 18 以上
+- [Google AI Studio](https://aistudio.google.com/) の API キー（Gemini）
+- [AivisSpeech](https://aivis-project.com/)（声が必要な場合）
+- Chrome 系ブラウザ（音声入力に使う）
+
+---
+
+## セットアップ
+
+### 1. `.env` を作る
+
+`index.html` と同じフォルダに `.env` を作り、次のように書きます。
+
+```env
+GOOGLE_API_KEY=ここにAPIキー
+GOOGLE_MODEL=gemini-2.5-flash
+AIVIS_ENGINE_URL=http://localhost:10101
+PORT=3000
+```
+
+- 各行に、コメントや説明を書き足さないでください（値として読み込まれてしまい、エラーになります）
+
+### 2. サーバーを起動する
+
+Windows：`Run.bat` をダブルクリックします。初回は必要なパッケージが自動で入ります。
+
+それ以外の環境：
+
+```bash
+npm install
+npm start
+```
+
+### 3. 開く
+
+AivisSpeech を起動してから、ブラウザで次を開きます。
+
+```
+http://localhost:3000/
+```
+
+### 4. 没入モード（任意）
+
+1. `otoverse-chat-vrm/RunVRM.bat` を実行する（初回は数分かかります）
+2. チャット画面の「🎭 没入」を押す
+
+ChatVRM だけで試すなら `http://localhost:5173/` を開きます。
+`?character=elena` を付けると、エレナで始まります。
+
+詳しくは [`otoverse-chat-vrm/README_OTOVERSE.md`](otoverse-chat-vrm/README_OTOVERSE.md) を見てください。
+
+---
+
+## 画像（`img/`）
+
+画面で使う画像は `img/` に置きます。無くても動きますが、アイコンは表示されません。
+
+| ファイル | 用途 |
+| --- | --- |
+| `logo.png` / `load.gif` | ロゴ・読み込み表示 |
+| `apple-touch-icon.png` | アイコン |
+| `manatu_avatar.png` / `manatu_placeholder.png` | 万夏 |
+| `elena_avatar.png` / `elena_placeholder.png` | エレナ |
+| `user_avatar.png` | ユーザー |
+
+---
+
+## キャラクターと声
+
+| キャラクター | 紹介 |
+| --- | --- |
+| 音葉 万夏（おとば まなつ） | 16 歳。ゲームと漫画が好き |
+| 旭川 エレナ（あさひかわ えれな） | 17 歳。敬語で話す、恥ずかしがり屋 |
+
+声は AivisSpeech の話者 ID で決まります。変える場合は `index.html` の `speakerId` を書き換えます。
+話者 ID は `http://127.0.0.1:10101/speakers` で確認できます。
+
+---
+
+## うまく動かないとき
+
+| 症状 | 確認すること |
+| --- | --- |
+| `Could not read package.json` | `package.json` が `proxy.js` と同じフォルダにあるか |
+| Gemini のエラー（400 など） | `.env` の `GOOGLE_API_KEY` が半角の正しいキーか、各行の後ろに余計な文字が無いか。`GOOGLE_MODEL` が存在するモデル名か |
+| 声が出ない | AivisSpeech が起動しているか。`AIVIS_ENGINE_URL` が合っているか |
+| 没入モードが開かない | `RunVRM.bat` を実行したか。5173 番が他で使われていないか |
+| 画像が出ない | `img/` フォルダの名前と、ファイル名が上の表と合っているか |
+
+---
+
+## 注意
+
+- 個人利用の試作です。ログイン機能は仮のもの（常に通る）で、**外部に公開して使う作りではありません**
+- API キーを含む `.env` は、絶対に公開しないでください
+- Gemini API の利用には、Google の料金と利用規約が適用されます
+
+---
+
+## クレジット
+
+- 企画・制作：おとば！
+- 3D 表示：[ChatVRM](https://github.com/pixiv/ChatVRM)（pixiv Inc., MIT License）、およびそのローカル版 LocalChatVRM
+- 音声合成：[AivisSpeech](https://aivis-project.com/)
+- 会話生成：Google Gemini API
+
+## ライセンス
+
+### ソースコード
+`proxy.js`、`index.html`、`Run.bat` など、このリポジトリの自作コードは
+[MIT License](LICENSE) です。
+
+### キャラクター・画像・設定
+音葉 万夏、旭川 エレナをはじめとするキャラクター、およびその画像・設定・
+世界観（`img/` 内の画像を含む）の著作権は、おとば！に帰属します。
+All rights reserved. 無断での転載・再配布・二次利用はご遠慮ください。
+
+### 同梱しているもの
+`otoverse-chat-vrm/` は pixiv Inc. の ChatVRM（MIT License）をもとにしています。
+元のライセンスは `otoverse-chat-vrm/LICENSE` を参照してください。
