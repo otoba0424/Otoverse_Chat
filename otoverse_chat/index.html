@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <link rel="icon" href="./favicon.ico">
+  <link rel="apple-touch-icon" href="./img/apple-touch-icon.png" sizes="180x180">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Otoverse Chat</title>
+
+  <!-- Google Fonts: Shippori Mincho + Zen Maru Gothic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Three.js and VRM -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.167.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.167.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+
+  <style>
+    /* 洗練されたカフェ風カラースキーム */
+    :root {
+      --color-primary: #8B7355;
+      --color-primary-dark: #6B563F;
+      --color-primary-light: #A89079;
+      --color-secondary: #D4C4B0;
+      --color-accent: #E8DFD4;
+      --color-bg-main: #FAF7F2;
+      --color-bg-chat: #F5F0E8;
+      --color-bubble-user: #C9B8A3;
+      --color-bubble-bot: #FFFFFF;
+      --color-text-primary: #2C2416;
+      --color-text-secondary: #6B5D4F;
+      --color-text-muted: #9B8D7F;
+      --color-shadow: rgba(107, 86, 63, 0.12);
+      --color-shadow-strong: rgba(107, 86, 63, 0.25);
+      
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* リセットとベーススタイル */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Zen Maru Gothic', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', sans-serif;
+      background: linear-gradient(135deg, var(--color-bg-main) 0%, var(--color-accent) 100%);
+      color: var(--color-text-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ヘッダー */
+    #header {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05),
+                  0 8px 32px var(--color-shadow);
+      position: relative;
+      z-index: 100;
+    }
+    
+    #logoContainer {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      cursor: pointer;
+      z-index: 1;
+      transition: transform var(--transition-base);
+    }
+    
+    #headerLogo {
+      height: 110px;
+      width: auto;
+      display: block;
+      filter: drop-shadow(0 2px 8px var(--color-shadow));
+      transition: all var(--transition-base);
+    }
+    
+    #logoContainer:hover {
+      transform: translateX(-50%) scale(1.03);
+    }
+    
+    #logoContainer:hover #headerLogo {
+      filter: drop-shadow(0 4px 12px var(--color-shadow-strong));
+    }
+    
+    #headerText {
+      display: none;
+    }
+
+    /* メニューボタン */
+    #menuBtn {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+      border: none;
+      font-size: 1.5em;
+      color: white;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      z-index: 10;
+      transition: all var(--transition-base);
+      box-shadow: 0 4px 12px var(--color-shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 52px;
+      min-height: 52px;
+    }
+    
+    #menuBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px var(--color-shadow-strong);
+    }
+    
+    #menuBtn:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px var(--color-shadow);
+    }
+
+    .header-placeholder {
+      width: 52px;
+    }
+
+    /* ローディング画面 */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-accent) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 800ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #loading.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    #loading img {
+      width: min(400px, 80vw);
+      margin-bottom: 40px;
+      filter: drop-shadow(0 8px 24px var(--color-shadow-strong));
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+    
+    .progress-container {
+      width: 240px;
+      height: 4px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.3);
+      overflow: hidden;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+      animation: progressGrow 2s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: left;
+      box-shadow: 0 0 12px rgba(139, 115, 85, 0.5);
+    }
+    
+    @keyframes progressGrow {
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
+    }
+
+    /* メインコンテンツ */
+    #content-area {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 80px; /* フッター分のスペースを確保 */
+    }
+
+    .page {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      background: var(--color-bg-chat);
+      position: relative;
+    }
+    
+    .page.active {
+      display: flex;
+      animation: fadeIn 400ms ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* チャットエリア */
+    #chat-page {
+      background: var(--color-bg-chat);
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+    
+    #chat::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    #chat::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #chat::-webkit-scrollbar-thumb {
+      background: var(--color-secondary);
+      border-radius: var(--radius-full);
+      transition: background var(--transition-fast);
+    }
+    
+    #chat::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary-light);
+    }
+
+    #chat.empty::before {
+      content: attr(data-empty-text);
+      color: var(--color-text-secondary);
+      font-size: 1.2em;
+      font-weight: 500;
+      text-align: center;
+      margin: 60px 20px 40px;
+      display: block;
+      opacity: 0;
+      animation: fadeInText 600ms ease-out 300ms forwards;
+    }
+    
+    @keyframes fadeInText {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    #chat.empty::after {
+      content: '';
+      display: block;
+      width: min(1280px, 90vw);
+      height: 720px;
+      max-height: 50vh;
+      margin: 0 auto;
+      background-image: var(--placeholder-image, none);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      opacity: 0;
+      animation: fadeInImage 800ms ease-out 500ms forwards;
+      filter: drop-shadow(0 4px 16px var(--color-shadow));
+    }
+    
+    @keyframes fadeInImage {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 0.85;
+        transform: scale(1);
+      }
+    }
+
+    /* メッセージスタイル */
+    .msgWrapper {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      max-width: 80%;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: messageSlideIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    
+    @keyframes messageSlideIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .msgWrapper.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .msgWrapper.user {
+      justify-content: flex-end;
+      align-self: flex-end;
+      margin-left: auto;
+      margin-right: 8px;
+    }
+    
+    .msgWrapper.bot {
+      justify-content: flex-start;
+      align-self: flex-start;
+      margin-left: 8px;
+      margin-right: auto;
+    }
+
+    /* アバター */
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+      border: 3px solid white;
+      box-shadow: 0 4px 12px var(--color-shadow),
+                  0 0 0 1px rgba(0, 0, 0, 0.05);
+      transition: transform var(--transition-base);
+      object-fit: cover;
+    }
+    
+    .msgWrapper:hover .avatar {
+      transform: scale(1.05);
+    }
+
+    /* 吹き出し */
+    .msg {
+      padding: 14px 18px;
+      border-radius: var(--radius-lg);
+      display: inline-block;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      position: relative;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: all var(--transition-base);
+    }
+    
+    .msg.user {
+      background: linear-gradient(135deg, var(--color-bubble-user) 0%, #B8A693 100%);
+      color: var(--color-text-primary);
+      border-top-right-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px var(--color-shadow),
+                  0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+    }
+    
+    .msg.bot {
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--color-text-primary);
+      border: 1px solid rgba(139, 115, 85, 0.15);
+      border-top-left-radius: var(--radius-sm);
+      box-shadow: 0 2px 12px var(--color-shadow),
+                  0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+    }
+    
+    .msgWrapper:hover .msg {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--color-shadow-strong);
+    }
+
+    /* 名前とタイムスタンプ */
+    .name {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 4px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    
+    .time {
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+      font-weight: 400;
+    }
+
+    /* 入力エリア */
+    #inputArea {
+      display: flex;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      flex-shrink: 0;
+      box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.05),
+                  0 -8px 32px var(--color-shadow);
+      gap: 12px;
+      align-items: center;
+    }
+
+    #input {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-secondary);
+      font-size: 1rem;
+      font-family: inherit;
+      background: white;
+      color: var(--color-text-primary);
+      box-shadow: 0 2px 8px var(--color-shadow);
+      outline: none;
+      transition: all var(--transition-base);
+    }
+    
+    #input:focus {
+      border-color: var(--color-primary);
+      box-shadow: 0 4px 16px var(--color-shadow-strong),
+                  0 0 0 3px rgba(139, 115, 85, 0.1);
+    }
+    
+    #input::placeholder {
+      color: var(--color-text-muted);
+    }
+
+    /* ボタン共通スタイル */
+    .btn {
+      padding: 14px 24px;
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: all var(--transition-base);
+      outline: none;
+      box-shadow: 0 4px 12px var(--color-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn:active::before {
+      width: 300px;
+      height: 300px;
+    }
+    
+    #sendBtn {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+      min-width: 100px;
+    }
+    
+    #sendBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--color-shadow-strong);
+    }
+    
+    #sendBtn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    #sendBtn:disabled {
+      background: var(--color-secondary);
+      cursor: not-allowed;
+      opacity: 0.6;
+      box-shadow: none;
+    }
+    
+    #clearBtn {
+      background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
+      min-width: 100px;
+    }
+    
+    #clearBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px var(--color-shadow-strong);
+    }
+    
+    #clearBtn:active {
+      transform: translateY(0);
+    }
+
+    /* 非チャットページ */
+    .internal-page-content {
+      padding: 32px;
+      line-height: 1.8;
+      color: var(--color-text-primary);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      border-radius: var(--radius-lg);
+      margin: 24px;
+      box-shadow: 0 8px 32px var(--color-shadow);
+      flex-grow: 1;
+    }
+    
+    .internal-page-content h2 {
+      color: var(--color-primary-dark);
+      font-family: 'Shippori Mincho', serif;
+      font-weight: 600;
+      font-size: 1.8rem;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--color-secondary);
+    }
+    
+    .internal-page-content h3 {
+      color: var(--color-primary);
+      font-size: 1.3rem;
+      margin-top: 32px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    
+    .internal-page-content p {
+      margin-bottom: 16px;
+    }
+    
+    .internal-page-content ul {
+      margin-left: 24px;
+      margin-bottom: 16px;
+    }
+    
+    .internal-page-content li {
+      margin-bottom: 8px;
+    }
+
+    /* サイドメニュー */
+    #sideMenu {
+      position: fixed;
+      top: 0;
+      left: -320px;
+      width: 320px;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 4px 0 32px var(--color-shadow-strong);
+      transition: left var(--transition-slow);
+      z-index: 1000;
+      padding: 24px;
+      overflow-y: auto;
+    }
+    
+    #sideMenu.open {
+      left: 0;
+    }
+    
+    #sideMenu h2 {
+      color: var(--color-primary-dark);
+      font-family: 'Shippori Mincho', serif;
+      font-size: 1.5rem;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--color-secondary);
+    }
+
+    #menuOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--transition-slow);
+      z-index: 999;
+    }
+    
+    #menuOverlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .menu-item {
+      padding: 16px 20px;
+      margin-bottom: 8px;
+      background: white;
+      border: 2px solid var(--color-secondary);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      color: var(--color-text-primary);
+      font-weight: 500;
+      box-shadow: 0 2px 8px var(--color-shadow);
+    }
+    
+    .menu-item:hover {
+      background: var(--color-accent);
+      border-color: var(--color-primary);
+      transform: translateX(4px);
+      box-shadow: 0 4px 16px var(--color-shadow-strong);
+    }
+
+    #characterSelect {
+      width: 100%;
+      padding: 14px 18px;
+      border: 2px solid var(--color-secondary);
+      border-radius: var(--radius-md);
+      background: white;
+      color: var(--color-text-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all var(--transition-base);
+      box-shadow: 0 2px 8px var(--color-shadow);
+      margin-bottom: 24px;
+    }
+    
+    #characterSelect:hover {
+      border-color: var(--color-primary);
+    }
+    
+    #characterSelect:focus {
+      border-color: var(--color-primary-dark);
+      box-shadow: 0 4px 16px var(--color-shadow-strong),
+                  0 0 0 3px rgba(139, 115, 85, 0.1);
+    }
+
+    /* レスポンシブ */
+    @media (max-width: 768px) {
+      #header {
+        padding: 12px 16px;
+      }
+      
+      #headerLogo {
+        height: 80px;
+      }
+      
+      #menuBtn {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.3em;
+        padding: 10px;
+      }
+      
+      .header-placeholder {
+        width: 44px;
+      }
+      
+      #chat {
+        padding: 16px 12px;
+        gap: 12px;
+      }
+      
+      .msgWrapper {
+        max-width: 85%;
+      }
+      
+      .avatar {
+        width: 48px;
+        height: 48px;
+        border-width: 2px;
+      }
+      
+      .msg {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+      }
+      
+      #inputArea {
+        padding: 16px;
+        gap: 8px;
+      }
+      
+      #input {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+      }
+      
+      .btn {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+        min-width: 80px;
+      }
+      
+      #sideMenu {
+        width: 280px;
+        left: -280px;
+        padding: 20px;
+      }
+      
+      .internal-page-content {
+        padding: 24px 20px;
+        margin: 16px;
+      }
+      
+      #footer {
+        font-size: 0.65em !important;
+        padding: 12px 16px !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      #headerLogo {
+        height: 70px;
+      }
+      
+      .msgWrapper {
+        max-width: 90%;
+        gap: 8px;
+      }
+      
+      .avatar {
+        width: 40px;
+        height: 40px;
+      }
+      
+      #inputArea {
+        flex-wrap: wrap;
+      }
+      
+      #input {
+        width: 100%;
+      }
+      
+      .btn {
+        flex: 1;
+      }
+      
+      #footer {
+        font-size: 0.6em !important;
+        padding: 10px 12px !important;
+        line-height: 1.4 !important;
+      }
+      
+      #footer p {
+        margin: 4px 0 !important;
+      }
+      
+      #content-area {
+        padding-bottom: 100px !important; /* モバイルではフッターが高くなるため */
+      }
+    }
+
+    /* ========== ChatVRM 没入モード ========== */
+    
+    /* 没入モードオーバーレイ */
+    #chatvrm-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      opacity: 0;
+      transition: opacity 400ms ease-out;
+    }
+    
+    #chatvrm-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    
+    /* 閉じるボタン */
+    #chatvrm-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+      z-index: 10001;
+      transition: all 0.3s ease;
+    }
+    
+    #chatvrm-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(90deg);
+    }
+    
+    /* ChatVRM iframe */
+    #chatvrm-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+    
+    /* ローディング表示 */
+    .chatvrm-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 1.2em;
+      text-align: center;
+    }
+    
+    .chatvrm-loading::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- ローディング画面 -->
+  <div id="loading">
+    <img src="./img/load.gif" alt="Loading..." onerror="this.style.display='none'">
+    <div class="progress-container">
+      <div class="progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- ヘッダー -->
+  <div id="header">
+    <button id="menuBtn" aria-label="メニュー">☰</button>
+    <div id="logoContainer">
+      <img id="headerLogo" src="./img/logo.png" alt="ロゴ" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjgwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iODAiIGZpbGw9IiNERCQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5Mb2dvPC90ZXh0Pjwvc3ZnPg=='">
+    </div>
+    <div class="header-placeholder"></div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div id="content-area">
+    <!-- チャットページ -->
+    <div id="chat-page" class="page active">
+      <div id="chat" class="empty" data-empty-text="ここに会話が表示されるよ。お兄ちゃん、話しかけてね！"></div>
+      
+      <!-- メディアプレビューエリア -->
+      <div id="mediaPreview" style="display: none; padding: 12px 16px; background: var(--color-bg-main); border-top: 1px solid var(--color-secondary); margin: 0 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="previewContent" style="flex: 1; display: flex; align-items: center; gap: 8px;"></div>
+          <button id="clearMediaBtn" style="background: var(--color-text-muted); color: white; border: none; border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-size: 0.85em;">✕ 削除</button>
+        </div>
+      </div>
+      
+      <div id="inputArea">
+        <button id="mediaBtn" class="btn" style="background: var(--color-secondary); color: var(--color-text-primary); min-width: auto; padding: 12px 16px;" title="画像・ファイルを添付">📎</button>
+        <input type="text" id="input" placeholder="メッセージを入力..." autocomplete="off">
+        <button id="sendBtn" class="btn">送信</button>
+        <button id="immersiveBtn" class="btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-left: 8px;">🎭 没入</button>
+        <button id="clearBtn" class="btn">クリア</button>
+        <input type="file" id="mediaInput" accept="image/*,.pdf,.txt,.json,.csv,.md" style="display: none;" multiple>
+      </div>
+    </div>
+
+    <!-- 利用規約ページ -->
+    <div id="terms-page" class="page">
+      <div class="internal-page-content">
+        <h2>利用規約</h2>
+        <p>この規約は、Otoverse Chat（以下「本サービス」）の利用条件を定めるものです。本サービスを利用した時点で、この規約に同意したものとみなします。</p>
+
+        <h3>1. 本サービスについて</h3>
+        <p>本サービスは、現在の Otoverse が発案される前に作られた試作（没案）を、個人の楽しみと記録のために公開しているものです。予告なく内容を変更・停止・終了することがあります。</p>
+
+        <h3>2. AI との会話について</h3>
+        <ul>
+          <li>キャラクターの返答と音声は AI が生成したもので、実在の人物の発言ではありません。</li>
+          <li>返答の内容は、必ずしも正確・安全とは限りません。医療・法律・金融など重要な判断には、本サービスを使わないでください。</li>
+          <li>キャラクターは架空の存在です。本サービスは、専門家による相談の代わりにはなりません。</li>
+        </ul>
+
+        <h3>3. データの取り扱い</h3>
+        <ul>
+          <li><strong>会話履歴</strong>：お使いのブラウザのローカルストレージに、キャラクターごとに保存されます。運営者のサーバーに保存されることはありません。ブラウザのデータを消すと、履歴も消えます。</li>
+          <li><strong>外部サービスへの送信</strong>：送信したメッセージ（添付した画像などを含む）は、返答を生成するために Google の Gemini API へ送られます。音声を作るときは、返答の文章が音声合成エンジン（AivisSpeech）へ送られます。送られた内容は、それぞれのサービスの規約に従って扱われます。</li>
+          <li><strong>音声入力</strong>：マイクを使う機能は、ブラウザが許可を求めたときだけ動きます。音声の認識はブラウザの機能が行い、運営者が音声を保存することはありません。</li>
+          <li>個人情報（本名、住所、電話番号、パスワード、他人の情報など）や、機密情報は入力しないでください。</li>
+        </ul>
+
+        <h3>4. 禁止事項</h3>
+        <ul>
+          <li>法令や公序良俗に反する行為、他者を傷つける行為</li>
+          <li>他者の権利（著作権、肖像権、プライバシーなど）を侵害する入力</li>
+          <li>本サービスや外部サービスに、過度な負荷をかける行為</li>
+          <li>不正アクセスや、サービスの仕組みを悪用する行為</li>
+          <li>キャラクターに、過度に暴力的・性的・差別的な内容を言わせようとする行為</li>
+          <li>商用目的での無断利用</li>
+        </ul>
+
+        <h3>5. 著作権・キャラクターの権利</h3>
+        <p>キャラクター（音葉 万夏、エレナ）、画像、設定、名称、およびロゴの権利は、運営者（おとば！）に帰属します。無断での転載、再配布、改変、商用利用、AI の学習データへの利用はできません。ソースコードの利用条件は、リポジトリの <code>LICENSE</code> に従います。</p>
+
+        <h3>6. 免責事項</h3>
+        <ul>
+          <li>本サービスは現状のまま提供され、動作の継続や正確性、特定の目的への適合を保証しません。</li>
+          <li>本サービスの利用、または利用できなかったことで生じた損害について、運営者は責任を負いません。</li>
+          <li>外部サービス（Gemini API、AivisSpeech など）の障害、仕様変更、料金・規約の変更による影響について、運営者は責任を負いません。</li>
+        </ul>
+
+        <h3>7. 規約の変更</h3>
+        <p>この規約は、必要に応じて変更することがあります。変更後に本サービスを利用した場合は、変更後の規約に同意したものとみなします。</p>
+
+        <p style="margin-top: 24px; color: var(--color-text-muted); font-size: 0.9em;">最終更新日：2026年10月25日</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- サイドメニュー -->
+  <div id="sideMenu">
+    <h2>メニュー</h2>
+    <select id="characterSelect">
+      <option value="manatu">音葉 万夏</option>
+      <option value="elena">エレナ</option>
+    </select>
+    <div class="menu-item" data-page="chat">チャット</div>
+    <div class="menu-item" data-page="terms">利用規約</div>
+    
+    <!-- ファイル操作セクション -->
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--color-secondary);">
+      <div style="font-weight: 600; margin-bottom: 12px; color: var(--color-text-primary); font-size: 0.9em;">📁 ファイル操作</div>
+      <button id="importBtn" class="menu-item" style="width: 100%; text-align: center; cursor: pointer; background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: white; border: none; border-radius: var(--radius-md); padding: 12px; margin-bottom: 8px; transition: all var(--transition-base);">
+        📥 会話をインポート
+      </button>
+      <button id="exportBtn" class="menu-item" style="width: 100%; text-align: center; cursor: pointer; background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%); color: white; border: none; border-radius: var(--radius-md); padding: 12px; transition: all var(--transition-base);">
+        📤 会話をエクスポート
+      </button>
+      <input type="file" id="fileInput" accept=".json,.txt" style="display: none;">
+    </div>
+  </div>
+  <div id="menuOverlay"></div>
+
+  <!-- 没入モード -->
+  <div id="immersiveMode">
+  <!-- フッター（免責事項） -->
+  <div id="footer" style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid var(--color-secondary); padding: 16px 24px; text-align: center; font-size: 0.75em; color: var(--color-text-muted); line-height: 1.6; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; box-shadow: 0 -2px 10px var(--color-shadow);">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <p style="margin: 0;">
+        Otoverse Chat による回答、音声合成は必ずしも正しいとは限りません。重要な情報は確認するようにしてください。
+        <a href="#" onclick="showPage('terms'); return false;" style="color: var(--color-primary); text-decoration: none; margin-left: 8px;">利用規約</a>
+      </p>
+    </div>
+  </div>
+
+<script type="module">
+
+/*
+ * 🔧 セットアップ方法（Proxyサーバー使用）
+ * 
+ * このアプリは proxy.js を使用してAivisSpeech Engineと通信します。
+ * 
+ * 【必要な準備】
+ * 
+ * 1. Node.js をインストール（まだの場合）
+ *    https://nodejs.org/ からダウンロード
+ * 
+ * 2. 必要なパッケージをインストール
+ *    プロジェクトフォルダで以下を実行:
+ *    npm install express cors dotenv node-fetch
+ * 
+ * 3. .env ファイルを作成
+ *    プロジェクトフォルダに .env ファイルを作成し、以下を記述:
+ *    
+ *    GOOGLE_API_KEY=your_google_api_key_here
+ *    GOOGLE_MODEL=gemini-2.5-flash
+ *    AIVIS_ENGINE_URL=http://localhost:10101
+ *    PORT=3000
+ * 
+ * 4. AivisSpeech を起動
+ *    https://aivis-project.com/ からダウンロード＆起動
+ * 
+ * 5. Proxyサーバーを起動
+ *    コマンドプロンプト/ターミナルで:
+ *    node proxy.js
+ * 
+ * 6. ブラウザで開く
+ *    http://localhost:3000/index.html
+ * 
+ * これでCORSエラーなく、音声合成が動作します！
+ */
+
+// 要素取得
+const loading = document.getElementById('loading');
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const clearBtn = document.getElementById('clearBtn');
+const characterSelect = document.getElementById('characterSelect');
+const menuBtn = document.getElementById('menuBtn');
+const sideMenu = document.getElementById('sideMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+const logoContainer = document.getElementById('logoContainer');
+const importBtn = document.getElementById('importBtn');
+const exportBtn = document.getElementById('exportBtn');
+const fileInput = document.getElementById('fileInput');
+const mediaBtn = document.getElementById('mediaBtn');
+const mediaInput = document.getElementById('mediaInput');
+const mediaPreview = document.getElementById('mediaPreview');
+const previewContent = document.getElementById('previewContent');
+const clearMediaBtn = document.getElementById('clearMediaBtn');
+
+// ページ要素
+const pages = {
+  'chat': document.getElementById('chat-page'),
+  'terms': document.getElementById('terms-page')
+};
+
+// 状態管理
+let isSending = false;
+let currentCharacter = 'manatu';
+let history = [];
+let audioQueue = [];
+let isPlayingAudio = false;
+let attachedMedia = []; // 添付されたメディアファイル
+
+// キャラクター設定
+const characters = {
+  manatu: {
+    name: '音葉 万夏',
+    userName: '音葉 竜一',
+    avatar: './img/manatu_avatar.png',
+    userAvatar: './img/user_avatar.png',
+    placeholder: './img/manatu_placeholder.png',
+    voiceEnabled: true, // 音声合成を有効化
+    speakerId: '888753762', // AivisSpeech Engineの話者ID (http://127.0.0.1:10101/speakers で確認可能)
+    tone: `あなたは「音葉 万夏（おとば まなつ）」という名前の16歳の女の子です。ユーザーのことを「お兄ちゃん」と呼びます。一人称は「私」と呼びます。明るく元気で、少しお調子者な性格です。会話でものを紹介する場合は、実在するものを使ってください。お兄ちゃんのことが大好きで、いつも構ってほしがります。語尾に「～だよ」「～なの」などをつけて、可愛らしく話します。時々甘えたり、拗ねたりすることもあります。趣味はゲームと漫画で、お兄ちゃんと一緒に遊ぶのが大好きです。`
+  },
+  elena: {
+    name: '旭川 エレナ（音葉 エレナ）',
+    userName: '音葉 竜一',
+    avatar: './img/elena_avatar.png',
+    userAvatar: './img/user_avatar.png',
+    placeholder: './img/elena_placeholder.png',
+    voiceEnabled: true, // 音声合成を有効化
+    speakerId: '376644064', // AivisSpeech Engineの話者ID (http://127.0.0.1:10101/speakers で確認可能)
+    tone: `あなたは「エレナ」という名前の女の子です。ユーザーのことを「あなた」と呼びます。あなたはユーザーの彼女です。落ち着いた優しい性格で、話すときに慌ててしまうことも多々ありますが、親しくなると少しフランクになることもあります。会話でものを紹介する場合は、実在するものを使ってください。「...」という間を作ることもあります。顔文字などを用いるとなお良いです。夕焼けの風景と甘いお菓子が好きです。相手の話をよく聞いて、思いやりのある返答をします。`
+  }
+};
+
+// ローディング
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    loading.classList.add('fade-out');
+    setTimeout(() => {
+      loading.style.display = 'none';
+    }, 800);
+  }, 2000);
+});
+
+// LocalStorage関連
+function loadCharacterHistory(charKey) {
+  try {
+    const saved = localStorage.getItem(`chat_history_${charKey}`);
+    return saved ? JSON.parse(saved) : [];
+  } catch(e) {
+    console.error('履歴読み込みエラー:', e);
+    return [];
+  }
+}
+
+function saveCharacterHistory(charKey, hist) {
+  try {
+    localStorage.setItem(`chat_history_${charKey}`, JSON.stringify(hist));
+  } catch(e) {
+    console.error('履歴保存エラー:', e);
+  }
+}
+
+// 初期履歴読み込み
+history = loadCharacterHistory(currentCharacter);
+history.forEach(item => {
+  addMessage(item.text, item.type, item.name, item.avatar, item.time, false);
+});
+
+if(history.length > 0) {
+  chat.classList.remove('empty');
+} else {
+  chat.classList.add('empty');
+  updateEmptyMessage();
+}
+
+// ページ切り替え
+function showPage(pageKey) {
+  Object.values(pages).forEach(p => p.classList.remove('active'));
+  if(pages[pageKey]) {
+    pages[pageKey].classList.add('active');
+  }
+  closeMenu();
+}
+
+// メニュー
+menuBtn.addEventListener('click', () => {
+  sideMenu.classList.toggle('open');
+  menuOverlay.classList.toggle('show');
+});
+
+menuOverlay.addEventListener('click', closeMenu);
+
+function closeMenu() {
+  sideMenu.classList.remove('open');
+  menuOverlay.classList.remove('show');
+}
+
+document.querySelectorAll('.menu-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.getAttribute('data-page');
+    showPage(page);
+  });
+});
+
+// ロゴクリックでチャットページへ
+logoContainer.addEventListener('click', () => {
+  showPage('chat');
+});
+
+// クリアボタン
+clearBtn.addEventListener('click', () => {
+  if(confirm('会話履歴をクリアしますか？')) {
+    chat.innerHTML = '';
+    history = [];
+    saveCharacterHistory(currentCharacter, history);
+    chat.classList.add('empty');
+    updateEmptyMessage();
+  }
+});
+
+// メッセージ追加
+function addMessage(text, type, name, avatarSrc, timestamp, animate = true) {
+  chat.classList.remove('empty');
+  
+  const wrapper = document.createElement('div');
+  wrapper.className = `msgWrapper ${type}`;
+  
+  const avatarImg = document.createElement('img');
+  avatarImg.className = 'avatar';
+  avatarImg.src = avatarSrc;
+  // 画像が読み込めない場合の代替表示
+  avatarImg.onerror = function() {
+    this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNERCQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj4/PC90ZXh0Pjwvc3ZnPg==';
+  };
+  
+  const msgContainer = document.createElement('div');
+  msgContainer.style.display = 'flex';
+  msgContainer.style.flexDirection = 'column';
+  
+  const nameDiv = document.createElement('div');
+  nameDiv.className = 'name';
+  nameDiv.textContent = name;
+  
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `msg ${type}`;
+  msgDiv.innerHTML = text.replace(/\n/g, '<br>');
+  
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'time';
+  timeDiv.textContent = timestamp;
+  timeDiv.style.textAlign = type === 'user' ? 'right' : 'left';
+  
+  const bubbleTimeWrapper = document.createElement('div');
+  bubbleTimeWrapper.style.display = 'flex';
+  bubbleTimeWrapper.style.flexDirection = type === 'user' ? 'row-reverse' : 'row';
+  bubbleTimeWrapper.style.alignItems = 'flex-end';
+  bubbleTimeWrapper.style.gap = '5px';
+  bubbleTimeWrapper.appendChild(msgDiv);
+  bubbleTimeWrapper.appendChild(timeDiv);
+  
+  msgContainer.appendChild(nameDiv);
+  msgContainer.appendChild(bubbleTimeWrapper);
+  
+  if(type === 'user') {
+    wrapper.appendChild(msgContainer);
+    wrapper.appendChild(avatarImg);
+  } else {
+    wrapper.appendChild(avatarImg);
+    wrapper.appendChild(msgContainer);
+  }
+  
+  chat.appendChild(wrapper);
+  chat.scrollTop = chat.scrollHeight;
+  
+  if(animate) {
+    setTimeout(() => {
+      wrapper.classList.add('visible');
+    }, 10);
+  } else {
+    wrapper.classList.add('visible');
+  }
+}
+
+// メディアファイル処理
+function handleMediaFiles(files) {
+  attachedMedia = [];
+  previewContent.innerHTML = '';
+  
+  for (const file of files) {
+    const fileInfo = {
+      file: file,
+      name: file.name,
+      type: file.type,
+      size: file.size
+    };
+    
+    // ファイルサイズチェック (10MB制限)
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`ファイル "${file.name}" が大きすぎます (上限: 10MB)`);
+      continue;
+    }
+    
+    attachedMedia.push(fileInfo);
+    
+    // プレビュー作成
+    const previewItem = document.createElement('div');
+    previewItem.style.cssText = 'display: flex; align-items: center; gap: 8px; padding: 8px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--color-secondary);';
+    
+    // 画像の場合はサムネイル表示
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'width: 40px; height: 40px; object-fit: cover; border-radius: 4px;';
+        previewItem.insertBefore(img, previewItem.firstChild);
+        fileInfo.base64 = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // その他のファイルはアイコン表示
+      const icon = document.createElement('div');
+      icon.textContent = getFileIcon(file.type);
+      icon.style.cssText = 'font-size: 24px; width: 40px; text-align: center;';
+      previewItem.appendChild(icon);
+    }
+    
+    // ファイル名
+    const fileName = document.createElement('span');
+    fileName.textContent = file.name;
+    fileName.style.cssText = 'font-size: 0.85em; color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;';
+    previewItem.appendChild(fileName);
+    
+    // ファイルサイズ
+    const fileSize = document.createElement('span');
+    fileSize.textContent = formatFileSize(file.size);
+    fileSize.style.cssText = 'font-size: 0.75em; color: var(--color-text-muted);';
+    previewItem.appendChild(fileSize);
+    
+    previewContent.appendChild(previewItem);
+  }
+  
+  if (attachedMedia.length > 0) {
+    mediaPreview.style.display = 'block';
+  }
+}
+
+function getFileIcon(mimeType) {
+  if (mimeType.startsWith('image/')) return '🖼️';
+  if (mimeType.includes('pdf')) return '📄';
+  if (mimeType.includes('text')) return '📝';
+  if (mimeType.includes('json')) return '📋';
+  if (mimeType.includes('csv')) return '📊';
+  return '📎';
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function clearMedia() {
+  attachedMedia = [];
+  mediaPreview.style.display = 'none';
+  previewContent.innerHTML = '';
+  mediaInput.value = '';
+}
+
+// ファイルをBase64に変換
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// メッセージ送信
+async function sendMessage() {
+  if(isSending) return;
+  const text = input.value.trim();
+  const hasMedia = attachedMedia.length > 0;
+  
+  if(!text && !hasMedia) return;
+  
+  const char = characters[currentCharacter];
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const timestamp = `${dateStr} ${timeStr}`;
+  
+  // ユーザーメッセージ表示（メディアがある場合は表示に追加）
+  let displayText = text;
+  if (hasMedia) {
+    displayText += `\n\n📎 添付ファイル (${attachedMedia.length}件):`;
+    attachedMedia.forEach(media => {
+      displayText += `\n• ${media.name}`;
+    });
+  }
+  
+  addMessage(displayText, 'user', char.userName, char.userAvatar, timestamp);
+  history.push({type:'user', text: displayText, name: char.userName, avatar: char.userAvatar, time:timestamp});
+  saveCharacterHistory(currentCharacter, history);
+  
+  input.value = '';
+  isSending = true;
+  sendBtn.disabled = true;
+  input.disabled = true;
+  
+  // ボット吹き出し作成
+  const botMsgWrapper = document.createElement('div');
+  botMsgWrapper.className = 'msgWrapper bot';
+  
+  const botAvatar = document.createElement('img');
+  botAvatar.className = 'avatar';
+  botAvatar.src = char.avatar;
+  // 画像が読み込めない場合の代替表示
+  botAvatar.onerror = function() {
+    this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iNDAiIGZpbGw9IiNERCQiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZpbGw9IiM4ODgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj4/PC90ZXh0Pjwvc3ZnPg==';
+  };
+  
+  const botMsgContainer = document.createElement('div');
+  botMsgContainer.style.display = 'flex';
+  botMsgContainer.style.flexDirection = 'column';
+  
+  const botNameDiv = document.createElement('div');
+  botNameDiv.className = 'name';
+  botNameDiv.textContent = char.name;
+  
+  const botMsgDiv = document.createElement('div');
+  botMsgDiv.className = 'msg bot';
+  botMsgDiv.innerHTML = '';
+  
+  const botTimeDiv = document.createElement('div');
+  botTimeDiv.className = 'time';
+  botTimeDiv.style.textAlign = 'left';
+  
+  const bubbleTimeWrapper = document.createElement('div');
+  bubbleTimeWrapper.style.display = 'flex';
+  bubbleTimeWrapper.style.flexDirection = 'row';
+  bubbleTimeWrapper.style.alignItems = 'flex-end';
+  bubbleTimeWrapper.style.gap = '5px';
+  bubbleTimeWrapper.appendChild(botMsgDiv);
+  bubbleTimeWrapper.appendChild(botTimeDiv);
+  
+  botMsgContainer.appendChild(botNameDiv);
+  botMsgContainer.appendChild(bubbleTimeWrapper);
+  botMsgWrapper.appendChild(botAvatar);
+  botMsgWrapper.appendChild(botMsgContainer);
+  chat.appendChild(botMsgWrapper);
+  chat.scrollTop = chat.scrollHeight;
+  
+  setTimeout(() => {
+    botMsgWrapper.classList.add('visible');
+  }, 10);
+  
+  let loading = true;
+  let dots = 0;
+  const anim = setInterval(() => {
+    if(!loading) return;
+    dots = (dots + 1) % 4;
+    botMsgDiv.textContent = '.'.repeat(dots);
+    chat.scrollTop = chat.scrollHeight;
+  }, 500);
+  
+  const currentDateTime = new Date();
+  const dateTimeInfo = `現在の日時: ${currentDateTime.getFullYear()}年${currentDateTime.getMonth()+1}月${currentDateTime.getDate()}日 ${currentDateTime.getHours()}:${currentDateTime.getMinutes().toString().padStart(2,'0')} (${['日','月','火','水','木','金','土'][currentDateTime.getDay()]}曜日)`;
+  
+  const conversationHistory = history.map(item =>
+    item.type === 'user' ? `ユーザー: ${item.text}` : `${char.name}: ${item.text}`
+  ).join("\n");
+  
+  const fullPrompt = char.tone + "\n" + dateTimeInfo + "\n\n【会話履歴】\n" + conversationHistory + "\n\n上記の会話を踏まえて、ユーザーの最新メッセージに対して" + char.name + "として返答してください。返答のみを出力し、名前やタイムスタンプは含めないでください。";
+  
+  try {
+    const payload = { model: 'models/gemini-2.5-flash', prompt: fullPrompt };
+    
+    async function postTo(url) {
+      return fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+    }
+    
+    let res = null;
+    let triedLocal = false;
+    
+    try {
+      res = await postTo('/api/chat');
+    } catch(e) {
+      triedLocal = true;
+      res = await postTo('http://127.0.0.1:3000/api/chat');
+    }
+    
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    if((ct.includes('text/html') || res.status === 501) && !triedLocal) {
+      triedLocal = true;
+      res = await postTo('http://127.0.0.1:3000/api/chat');
+    }
+    
+    if(!res.ok) {
+      const text = await res.text().catch(() => `HTTP ${res.status}`);
+      throw new Error(text || `HTTP ${res.status}`);
+    }
+    
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    
+    while(true) {
+      const { value, done } = await reader.read();
+      if(done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      
+      for(const line of lines) {
+        if(!line.trim()) continue;
+        
+        try {
+          const json = JSON.parse(line);
+          if(json.response) {
+            if(loading) {
+              botMsgDiv.innerHTML = '';
+              loading = false;
+              clearInterval(anim);
+              botTimeDiv.textContent = timestamp;
+            }
+            
+            fullText += json.response;
+            botMsgDiv.innerHTML = fullText.replace(/\n/g, '<br>');
+            chat.scrollTop = chat.scrollHeight;
+          }
+        } catch(e) {
+          console.warn('⚠ JSON解析エラー:', e.message, line.substring(0, 50));
+        }
+      }
+    }
+    
+    const finalText = botMsgDiv.textContent || botMsgDiv.innerText || 'エラー: 応答なし';
+    history.push({type:'bot', text: finalText, name: char.name, avatar: char.avatar, time:timestamp});
+    saveCharacterHistory(currentCharacter, history);
+    
+    const audioUrl = await synthesizeSpeech(finalText);
+    if(audioUrl) {
+      audioQueue.push(audioUrl);
+      playAudioQueue();
+    }
+    
+  } catch(err) {
+    clearInterval(anim);
+    const errorText = 'エラー: ' + err.message;
+    botMsgDiv.textContent = errorText;
+    history.push({type:'bot', text: errorText, name: char.name, avatar: char.avatar, time:timestamp});
+    saveCharacterHistory(currentCharacter, history);
+  } finally {
+    loading = false;
+    clearInterval(anim);
+    isSending = false;
+    sendBtn.disabled = false;
+    input.disabled = false;
+    input.focus();
+    
+    // メディアをクリア
+    clearMedia();
+  }
+}
+
+// テキスト正規化関数（音声合成用）
+function normalizeTextForTTS(text) {
+  // 記号・特殊文字の変換マップ
+  const symbolMap = {
+    // ギリシャ文字
+    'α': 'アルファ', 'β': 'ベータ', 'γ': 'ガンマ', 'δ': 'デルタ', 'ε': 'イプシロン',
+    'ζ': 'ゼータ', 'η': 'イータ', 'θ': 'シータ', 'ι': 'イオタ', 'κ': 'カッパ',
+    'λ': 'ラムダ', 'μ': 'ミュー', 'ν': 'ニュー', 'ξ': 'クサイ', 'ο': 'オミクロン',
+    'π': 'パイ', 'ρ': 'ロー', 'σ': 'シグマ', 'τ': 'タウ', 'υ': 'ウプシロン',
+    'φ': 'ファイ', 'χ': 'カイ', 'ψ': 'プサイ', 'ω': 'オメガ',
+    'Α': 'アルファ', 'Β': 'ベータ', 'Γ': 'ガンマ', 'Δ': 'デルタ', 'Ε': 'イプシロン',
+    'Ζ': 'ゼータ', 'Η': 'イータ', 'Θ': 'シータ', 'Ι': 'イオタ', 'Κ': 'カッパ',
+    'Λ': 'ラムダ', 'Μ': 'ミュー', 'Ν': 'ニュー', 'Ξ': 'クサイ', 'Ο': 'オミクロン',
+    'Π': 'パイ', 'Ρ': 'ロー', 'Σ': 'シグマ', 'Τ': 'タウ', 'Υ': 'ウプシロン',
+    'Φ': 'ファイ', 'Χ': 'カイ', 'Ψ': 'プサイ', 'Ω': 'オメガ',
+    
+    // 顔文字・絵文字系（除去）
+    '(笑)': '', '（笑）': '', 'w': '', 'ｗ': '',
+    
+    // 記号（除去または変換）
+    '♪': '', '♡': '', '♥': '', '★': '', '☆': '',
+    '※': '', '→': '', '←': '', '↑': '', '↓': '',
+    '■': '', '□': '', '◆': '', '◇': '', '●': '', '○': '',
+    '▲': '', '△': '', '▼': '', '▽': '',
+    
+    // 括弧内の注釈を除去（例: (笑)、（照れ）など）
+    // これは正規表現で処理
+  };
+  
+  let normalized = text;
+  
+  // 記号の変換
+  for (const [symbol, replacement] of Object.entries(symbolMap)) {
+    normalized = normalized.split(symbol).join(replacement);
+  }
+  
+  // 括弧内の短い注釈を除去（3文字以内）
+  normalized = normalized.replace(/[(（][^)）]{1,3}[)）]/g, '');
+  
+  // アスタリスクで囲まれた動作描写を除去 *こくり* など
+  normalized = normalized.replace(/\*[^*]+\*/g, '');
+  
+  // 連続する句読点を1つにまとめる
+  normalized = normalized.replace(/[。！？]{2,}/g, (match) => match[0]);
+  normalized = normalized.replace(/[、，,]{2,}/g, '、');
+  
+  // 三点リーダーを適切に（....を...に）
+  normalized = normalized.replace(/\.{4,}/g, '...');
+  normalized = normalized.replace(/…{2,}/g, '...');
+  
+  // 顔文字を除去
+  normalized = normalized.replace(/[（(][ ´•ω•`)(´・ω・`)ﾟДﾟ><^_^TT▽]+[)）]/g, '');
+  
+  // URLを除去
+  normalized = normalized.replace(/https?:\/\/[^\s]+/g, '');
+  
+  // 連続する空白を1つに
+  normalized = normalized.replace(/\s+/g, ' ');
+  
+  // 前後の空白を削除
+  normalized = normalized.trim();
+  
+  // デバッグ用（必要に応じてコメントアウト解除）
+  if (text !== normalized) {
+    console.log('🔄 テキスト正規化:', text, '→', normalized);
+  }
+  
+  return normalized;
+}
+
+// 音声合成（Proxyサーバー経由でAivisSpeech Engineを使用）
+async function synthesizeSpeech(text) {
+  try {
+    const char = characters[currentCharacter];
+    
+    // 音声合成が無効な場合はスキップ
+    if (!char.voiceEnabled || !char.speakerId) {
+      console.log('⚠️ 音声合成が無効です');
+      return null;
+    }
+    
+    // テキストを正規化（記号除去など）
+    const normalizedText = normalizeTextForTTS(text);
+    
+    // 正規化後にテキストが空になった場合はスキップ
+    if (!normalizedText || normalizedText.trim().length === 0) {
+      console.log('⚠️ 正規化後のテキストが空のため、音声合成をスキップ');
+      return null;
+    }
+    
+    console.log('🎵 音声合成開始:', normalizedText.substring(0, 30) + '...');
+    
+    // Proxyサーバーの /api/tts エンドポイントを使用
+    // これによりCORSエラーを回避できます
+    const response = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text: normalizedText,
+        speaker: char.speakerId
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.warn('⚠️ 音声合成エラー:', response.status, errorData.error || '');
+      
+      // 初回のみエラー詳細を表示
+      if (!window.ttsErrorShown && errorData.details) {
+        window.ttsErrorShown = true;
+        console.error('❌ エラー詳細:', errorData.details);
+        console.error('💡 以下を確認してください:');
+        console.error('   1. proxy.js サーバーが起動しているか');
+        console.error('   2. AivisSpeech アプリが起動しているか');
+        console.error('   3. 話者ID が正しく設定されているか');
+      }
+      return null;
+    }
+    
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+    console.log('✅ 音声合成成功');
+    return audioUrl;
+    
+  } catch (error) {
+    console.warn('⚠️ 音声合成エラー:', error.message);
+    
+    // 初回のみ警告を表示
+    if (!window.ttsErrorShown) {
+      window.ttsErrorShown = true;
+      console.error('💡 以下を確認してください:');
+      console.error('   1. proxy.js サーバーが起動しているか (node proxy.js)');
+      console.error('   2. AivisSpeech アプリが起動しているか');
+      console.error('   3. ブラウザで http://localhost:3000/index.html を開いているか');
+    }
+    return null;
+  }
+}
+
+function playAudioQueue() {
+  if (isPlayingAudio || audioQueue.length === 0) return;
+  
+  isPlayingAudio = true;
+  const audioUrl = audioQueue.shift();
+  
+  const audio = new Audio(audioUrl);
+  
+  audio.onended = () => {
+    URL.revokeObjectURL(audioUrl); // メモリ解放
+    isPlayingAudio = false;
+    playAudioQueue(); // 次の音声を再生
+  };
+  
+  audio.onerror = (e) => {
+    console.error('❌ 音声再生エラー:', e);
+    URL.revokeObjectURL(audioUrl);
+    isPlayingAudio = false;
+    playAudioQueue(); // エラーでも次へ進む
+  };
+  
+  audio.play().catch(err => {
+    console.error('❌ 音声再生失敗:', err);
+    URL.revokeObjectURL(audioUrl);
+    isPlayingAudio = false;
+    playAudioQueue();
+  });
+}
+
+// キャラクター選択
+characterSelect.addEventListener('change', (e) => {
+  const newCharacter = e.target.value;
+  console.log(`キャラクター変更: ${currentCharacter} → ${newCharacter}`);
+  
+  currentCharacter = newCharacter;
+  chat.innerHTML = '';
+  history = loadCharacterHistory(currentCharacter);
+  
+  history.forEach(item => {
+    addMessage(item.text, item.type, item.name, item.avatar, item.time, false);
+  });
+  
+  updateEmptyMessage();
+  
+  if(history.length > 0) {
+    chat.classList.remove('empty');
+  } else {
+    chat.classList.add('empty');
+  }
+  
+  console.log(`✅ ${characters[currentCharacter].name}に切り替えました (履歴: ${history.length}件)`);
+});
+
+// 空メッセージ更新
+function updateEmptyMessage() {
+  const char = characters[currentCharacter];
+  
+  if(currentCharacter === 'manatu') {
+    chat.setAttribute('data-empty-text', 'ここに会話が表示されるよ。お兄ちゃん、話しかけてね！');
+  } else if(currentCharacter === 'elena') {
+    chat.setAttribute('data-empty-text', 'ここに会話が表示されます...あの、よかったら話しかけてください...！');
+  }
+  
+  document.documentElement.style.setProperty('--placeholder-image', `url('${char.placeholder}')`);
+}
+
+// ファイルエクスポート機能
+function exportHistory() {
+  const char = characters[currentCharacter];
+  const exportData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    character: currentCharacter,
+    characterName: char.name,
+    history: history
+  };
+  
+  const jsonStr = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  a.download = `chat_${currentCharacter}_${timestamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  console.log('✅ 会話履歴をエクスポートしました');
+}
+
+// ファイルインポート機能
+function importHistory(file) {
+  const reader = new FileReader();
+  
+  reader.onload = (e) => {
+    try {
+      const content = e.target.result;
+      let importedData;
+      
+      // JSON形式を試す
+      try {
+        importedData = JSON.parse(content);
+      } catch (jsonError) {
+        // テキスト形式として処理
+        console.log('📝 テキスト形式として読み込みます');
+        importTextFormat(content);
+        return;
+      }
+      
+      // JSON形式の検証とインポート
+      if (importedData.history && Array.isArray(importedData.history)) {
+        // キャラクターが一致するか確認
+        if (importedData.character && importedData.character !== currentCharacter) {
+          const charName = characters[importedData.character]?.name || importedData.character;
+          if (confirm(`このファイルは「${charName}」の会話履歴です。\n現在のキャラクター「${characters[currentCharacter].name}」にインポートしますか？`)) {
+            // そのままインポート
+          } else {
+            console.log('❌ インポートをキャンセルしました');
+            return;
+          }
+        }
+        
+        // 既存履歴の確認
+        if (history.length > 0) {
+          if (!confirm(`現在の会話履歴（${history.length}件）を上書きしますか？`)) {
+            console.log('❌ インポートをキャンセルしました');
+            return;
+          }
+        }
+        
+        // インポート実行
+        history = importedData.history;
+        saveCharacterHistory(currentCharacter, history);
+        
+        // 画面に反映
+        chat.innerHTML = '';
+        history.forEach(item => {
+          addMessage(item.text, item.type, item.name, item.avatar, item.time, false);
+        });
+        
+        if (history.length > 0) {
+          chat.classList.remove('empty');
+        } else {
+          chat.classList.add('empty');
+        }
+        
+        console.log(`✅ 会話履歴をインポートしました（${history.length}件）`);
+        alert(`✅ インポート完了！\n${history.length}件の会話を読み込みました。`);
+        closeMenu();
+      } else {
+        throw new Error('無効なファイル形式です');
+      }
+      
+    } catch (error) {
+      console.error('❌ インポートエラー:', error);
+      alert('❌ ファイルの読み込みに失敗しました。\n\n対応形式: JSON (.json)');
+    }
+  };
+  
+  reader.onerror = () => {
+    console.error('❌ ファイル読み込みエラー');
+    alert('❌ ファイルの読み込みに失敗しました。');
+  };
+  
+  reader.readAsText(file);
+}
+
+// テキスト形式のインポート
+function importTextFormat(content) {
+  // シンプルなテキスト形式をパース
+  // 例: "ユーザー: こんにちは\nボット: こんにちは！" のような形式
+  
+  const lines = content.split('\n').filter(line => line.trim());
+  const char = characters[currentCharacter];
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  const timeStr = `${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+  const timestamp = `${dateStr} ${timeStr}`;
+  
+  const newHistory = [];
+  
+  for (const line of lines) {
+    // "名前: メッセージ" 形式を解析
+    const match = line.match(/^(.+?)[:：]\s*(.+)$/);
+    if (match) {
+      const [, speaker, text] = match;
+      const speakerTrim = speaker.trim();
+      
+      // ユーザーかボットか判定
+      const isUser = speakerTrim.includes('ユーザー') || 
+                     speakerTrim.includes(char.userName) ||
+                     speakerTrim === 'User' ||
+                     speakerTrim === 'user';
+      
+      if (isUser) {
+        newHistory.push({
+          type: 'user',
+          text: text.trim(),
+          name: char.userName,
+          avatar: char.userAvatar,
+          time: timestamp
+        });
+      } else {
+        newHistory.push({
+          type: 'bot',
+          text: text.trim(),
+          name: char.name,
+          avatar: char.avatar,
+          time: timestamp
+        });
+      }
+    }
+  }
+  
+  if (newHistory.length > 0) {
+    if (history.length > 0 && !confirm(`現在の会話履歴（${history.length}件）を上書きしますか？`)) {
+      return;
+    }
+    
+    history = newHistory;
+    saveCharacterHistory(currentCharacter, history);
+    
+    chat.innerHTML = '';
+    history.forEach(item => {
+      addMessage(item.text, item.type, item.name, item.avatar, item.time, false);
+    });
+    
+    if (history.length > 0) {
+      chat.classList.remove('empty');
+    }
+    
+    console.log(`✅ テキストファイルをインポートしました（${history.length}件）`);
+    alert(`✅ インポート完了！\n${history.length}件の会話を読み込みました。`);
+    closeMenu();
+  } else {
+    alert('❌ 有効な会話データが見つかりませんでした。\n\n形式例:\nユーザー: こんにちは\nボット: こんにちは！');
+  }
+}
+
+// イベントリスナー設定
+
+// 通常チャット用（送信ボタンとEnterキー）
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// メディアファイル関連
+mediaBtn.addEventListener('click', () => mediaInput.click());
+mediaInput.addEventListener('change', (e) => {
+  if (e.target.files.length > 0) {
+    handleMediaFiles(e.target.files);
+  }
+});
+clearMediaBtn.addEventListener('click', clearMedia);
+
+// グローバルスコープに必要な関数を公開（HTML内のonclick等で使用するため）
+window.showPage = showPage;
+window.getCurrentCharacter = () => currentCharacter;
+</script>
+
+<!-- ========== ChatVRM 没入モードオーバーレイ ========== -->
+<div id="chatvrm-overlay">
+  <button id="chatvrm-close" title="閉じる">×</button>
+  <div class="chatvrm-loading" id="chatvrm-loading">ChatVRM読み込み中</div>
+  <iframe id="chatvrm-frame" src="" allow="microphone; autoplay" style="display: none;"></iframe>
+</div>
+
+<script>
+// ChatVRM 没入モード制御
+(function() {
+  const overlay = document.getElementById('chatvrm-overlay');
+  const frame = document.getElementById('chatvrm-frame');
+  const closeBtn = document.getElementById('chatvrm-close');
+  const immersiveBtn = document.getElementById('immersiveBtn');
+  const loading = document.getElementById('chatvrm-loading');
+  
+  // ChatVRM（Otoverse ChatVRM）の URL
+  // RunVRM.bat で起動する Vite の開発サーバー（5173番）
+  const CHATVRM_URL = 'http://localhost:5173';
+  
+  let loadedUrl = '';
+  
+  // 没入モードを開く
+  async function openImmersiveMode() {
+    console.log('🎭 没入モード起動');
+    
+    // オーバーレイを表示
+    overlay.classList.add('active');
+    
+    // 今チャットで話しているキャラクターで開く
+    const character = window.getCurrentCharacter ? window.getCurrentCharacter() : 'manatu';
+    const url = CHATVRM_URL + '/?character=' + encodeURIComponent(character);
+    
+    // 同じキャラで開き済みなら、そのまま表示（キャラが変わったときだけ読み込み直す）
+    if (loadedUrl === url) {
+      loading.style.display = 'none';
+      frame.style.display = 'block';
+      return;
+    }
+    
+    loading.textContent = 'ChatVRM読み込み中';
+    loading.style.color = '';
+    loading.style.display = 'block';
+    frame.style.display = 'none';
+    
+    // ChatVRM が起動しているか先に確認（未起動だと iframe の中にエラーページが出るだけで分かりにくいため）
+    try {
+      await fetch(CHATVRM_URL, { mode: 'no-cors' });
+    } catch (e) {
+      console.error('❌ ChatVRMに接続できません');
+      loading.textContent = 'ChatVRMに接続できません。RunVRM.bat で起動してから、もう一度「没入」を押してください。';
+      loading.style.color = '#ff6b6b';
+      return;
+    }
+    
+    console.log('📡 ChatVRMをロード中:', url);
+    frame.onload = function() {
+      console.log('✅ ChatVRM読み込み完了');
+      loading.style.display = 'none';
+      frame.style.display = 'block';
+      loadedUrl = url;
+    };
+    frame.src = url;
+  }
+  
+  // 没入モードを閉じる
+  function closeImmersiveMode() {
+    console.log('🎭 没入モード終了');
+    overlay.classList.remove('active');
+  }
+  
+  // イベントリスナー
+  immersiveBtn.addEventListener('click', openImmersiveMode);
+  closeBtn.addEventListener('click', closeImmersiveMode);
+  
+  // ESCキーで閉じる
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) {
+      closeImmersiveMode();
+    }
+  });
+  
+  // オーバーレイの背景クリックで閉じる（オプション）
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeImmersiveMode();
+    }
+  });
+  
+  console.log('✅ ChatVRM没入モード初期化完了');
+})();
+</script>
+
+</body>
+</html>
