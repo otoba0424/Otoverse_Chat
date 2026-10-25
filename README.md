@@ -1,4 +1,4 @@
-<img alt="logo" src="https://raw.githubusercontent.com/otoba0424/Otoverse_Chat/refs/heads/main/logo.png?token=GHSAT0AAAAAAENVUATETU4SEGFXLKBRXTXO2W5RW3Q" />
+<img width="1920" height="1080" alt="Image" src="https://github.com/user-attachments/assets/86bb4691-8030-4250-aa8e-248d974757d2" />
 
 # Otoverse_Chat制作に関する概要
 ## 1.制作の狙い
