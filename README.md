@@ -10,6 +10,3 @@
 現時点でのおとば！世界のキャラクタ一覧です。
 ・音葉 万夏　（OT-02）
 ・旭川 エレナ　（OT-03 おとば！の日特別モデル）
-
-# 【広報】最新のプロジェクト制作ポスターです
-<img width="529" height="748" alt="開発宣伝ポスター" src="https://github.com/user-attachments/assets/de7e53cd-9c10-48a3-b3dc-726faf1fcabd" />
