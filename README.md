@@ -41,7 +41,7 @@ otoverse_chat/
 
 | 役割 | ポート | 起動 |
 | --- | --- | --- |
-| チャット画面 + proxy | 3000 | `Run.bat` |
+| チャット画面 + proxy | 3000 | `otoverse_chat/Run.bat` |
 | ChatVRM（没入モード） | 5173 | `otoverse-chat-vrm/RunVRM.bat` |
 | AivisSpeech Engine | 10101 | AivisSpeech を起動 |
 
@@ -72,7 +72,6 @@ PORT=3000
 ```
 
 - 各行に、コメントや説明を書き足さないでください（値として読み込まれてしまい、エラーになります）
-- `.env` は GitHub に上げません（`.gitignore` に入れてください）
 
 ### 2. サーバーを起動する
 
@@ -102,20 +101,6 @@ ChatVRM だけで試すなら `http://localhost:5173/` を開きます。
 `?character=elena` を付けると、エレナで始まります。
 
 詳しくは [`otoverse-chat-vrm/README_OTOVERSE.md`](otoverse-chat-vrm/README_OTOVERSE.md) を見てください。
-
----
-
-## 画像（`img/`）
-
-画面で使う画像は `img/` に置きます。無くても動きますが、アイコンは表示されません。
-
-| ファイル | 用途 |
-| --- | --- |
-| `logo.png` / `load.gif` | ロゴ・読み込み表示 |
-| `apple-touch-icon.png` | アイコン |
-| `manatu_avatar.png` / `manatu_placeholder.png` | 万夏 |
-| `elena_avatar.png` / `elena_placeholder.png` | エレナ |
-| `user_avatar.png` | ユーザー |
 
 ---
 
